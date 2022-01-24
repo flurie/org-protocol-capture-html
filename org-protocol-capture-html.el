@@ -2,7 +2,7 @@
 
 ;; URL: https://github.com/alphapapa/org-protocol-capture-html
 ;; Version: 0.1-pre
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "27.1"))
 
 ;;; Commentary:
 
@@ -38,6 +38,8 @@
 (require 'cl-lib)
 (require 'subr-x)
 (require 's)
+(require 'eww)
+(require 'dom)
 
 ;;;; Vars
 
@@ -108,7 +110,7 @@ Pandoc, converting HTML to Org-mode."
                    (match-string 1 url)))
          (title (or (org-protocol-capture-html--nbsp-to-space (string-trim (plist-get data :title))) ""))
          (content (or (org-protocol-capture-html--nbsp-to-space (string-trim (plist-get data :body))) ""))
-         (orglink (org-make-link-string
+         (orglink (org-link-make-string
                    url (if (string-match "[^[:space:]]" title) title url)))
          (org-capture-link-is-already-stored t)) ; avoid call to org-store-link
 
@@ -124,7 +126,7 @@ Pandoc, converting HTML to Org-mode."
           (message "Pandoc failed: %s" (buffer-string))
         (progn
           ;; Pandoc succeeded
-          (org-store-link-props :type type
+          (org-link-store-props :type type
                                 :annotation orglink
                                 :link url
                                 :description title
@@ -143,14 +145,15 @@ Pandoc, converting HTML to Org-mode."
 
 (defvar url-http-end-of-headers)
 
-(eval-when-compile
+;; ❄ This isn't working in doom so I'm getting rid of the conditional compilation (because who uses Emacs 24???)
+;; (eval-when-compile
   ;; eww-readable only works on Emacs >=25.1, but I think it's better
   ;; to check for the actual symbols.  I think using
   ;; `eval-when-compile' is the right way to do this, but I'm not
   ;; sure.
-  (when (and (require 'eww nil t)
-             (require 'dom nil t)
-             (fboundp 'eww-score-readability))
+  ;; (when (and (require 'eww nil t)
+  ;;            (require 'dom nil t)
+  ;;            (fboundp 'eww-score-readability))
 
     (defun org-protocol-capture-html--capture-eww-readable (data)
       "Capture content of URL with eww-readable.."
@@ -187,7 +190,7 @@ Pandoc, converting HTML to Org-mode."
                             (insert "**")
                             (end-of-line)))
                         (buffer-string)))
-             (orglink (org-make-link-string
+             (orglink (org-link-make-string
                        url (if (s-present? title) title url)))
              ;; Avoid call to org-store-link
              (org-capture-link-is-already-stored t))
@@ -196,7 +199,7 @@ Pandoc, converting HTML to Org-mode."
               (cons (list url title) org-stored-links))
         (kill-new orglink)
 
-        (org-store-link-props :type type
+        (org-link-store-props :type type
                               :annotation orglink
                               :link url
                               :description title
@@ -249,7 +252,8 @@ Returns list (HTML . TITLE)."
         (cons (with-temp-buffer
                 (shr-dom-print (eww-highest-readability dom))
                 (buffer-string))
-              title)))))
+              title)))
+;;))
 
 ;;;; Helper functions
 
